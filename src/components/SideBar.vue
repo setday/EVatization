@@ -183,6 +183,7 @@ watch(letter, (value) => {
 
 .scheme-section .letter {
   width: 160px;
+  height: auto;
   overflow: clip;
 }
 

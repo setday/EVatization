@@ -7,11 +7,13 @@ const props = defineProps({
   show_anchor: Boolean,
 });
 
+let prevWaitingSchema = [];
 const prevSchema = ref([]);
 const currentSchema = ref([]);
-const display_mimic_1 = ref(false);
-const display_mimic_2 = ref(false);
-const display_mimic_3 = ref(false);
+const display_mimic = ref(false);
+
+const animation_type = ref('');
+const transformation_type = ref('');
 
 const anchorIn = ref([1, 1]);
 const anchorOut = ref([1, 5]);
@@ -21,34 +23,62 @@ const scale_factor = ref(1);
 const delta_translate_x = ref(0);
 const delta_translate_y = ref(0);
 
+let timeOut1 = null;
+let timeOut2 = null;
+
 watch(() => props.schema, (value) => {
   scale_factor.value = 1 / (value.iteration * value.iteration / 8 + 1);
 
-  // anchorIn.value = value.anchorIn || [1, 1];
-  // anchorOut.value = value.anchorOut || [1, 5];
-
-  if (true || value.iteration === 0) {
+  if (value.iteration === 0) {
+    prevWaitingSchema = value.schema;
     currentSchema.value = value.schema;
     prevSchema.value = value.schema;
     return;
   }
 
-  let display_mimic = value.iteration % 2 === 1 ? display_mimic_1 :
-      (value.iteration % 4 === 0 ? display_mimic_2 : display_mimic_3);
+  if (value.iteration % 2 === 1) {
+    transformation_type.value = 'rotate';
 
-  delta_translate_x.value = (value.anchorOut[0] - value.anchorIn[0]) * 100 / 6;
-  delta_translate_y.value = (value.anchorOut[1] - value.anchorIn[1]) * 60 / 6;
+    delta_translate_x.value = (anchorOut.value[0] - anchorIn.value[0] - 3) * 100 * 0.9 / 4;
+    delta_translate_y.value = (anchorOut.value[1] - anchorIn.value[1] - 1) * 100 * 0.9 / 6;
+  } else if (value.iteration % 4 === 0) {
+    transformation_type.value = 'flip-vertical';
 
+    delta_translate_x.value = 0;
+    delta_translate_y.value = (value.anchorOut[1] - value.anchorIn[1] - (6 / 2 - value.anchorIn[1]) * 2) * 100 * 0.9 / 6;
+  } else {
+    transformation_type.value = 'flip-horizontal';
+
+    delta_translate_x.value = (value.anchorOut[0] - value.anchorIn[0] - (4 / 2 - value.anchorIn[0]) * 2) * 100 * 0.9 / 4;
+    delta_translate_y.value = 0;
+  }
+
+  anchorIn.value = value.anchorIn || [1, 1];
+  anchorOut.value = value.anchorOut || [1, 5];
+
+  if (timeOut1) {
+    clearTimeout(timeOut1);
+  }
+  if (timeOut2) {
+    clearTimeout(timeOut2);
+    currentSchema.value = prevWaitingSchema;
+    prevSchema.value = prevWaitingSchema;
+  }
+  prevWaitingSchema = value.schema;
+
+  display_mimic.value = false;
+  animation_type.value = 'fade-in';
   display_mimic.value = true;
 
-  setTimeout(() => {
+  timeOut2 = setTimeout(() => {
     display_mimic.value = false;
     prevSchema.value = currentSchema.value;
   }, 3000);
 
-  setTimeout(() => {
+  timeOut1 = setTimeout(() => {
+    animation_type.value = 'fade-away';
     currentSchema.value = value.schema;
-  }, 2250);
+  }, 2000);
 });
 
 function fromGridToCanvas(pos, direction_cells = 0) {
@@ -89,46 +119,30 @@ function fromGridToCanvas(pos, direction_cells = 0) {
           stroke-width="4"
           stroke-linecap="round"
       />
-<!--      <circle-->
-<!--          v-if="!show_anchor"-->
-<!--          :cx="fromGridToCanvas(anchorIn[0], 4)"-->
-<!--          :cy="fromGridToCanvas(anchorIn[1], 6)"-->
-<!--          r="5"-->
-<!--          fill="red"-->
-<!--      />-->
-<!--      <circle-->
-<!--          v-if="!show_anchor"-->
-<!--          :cx="fromGridToCanvas(anchorOut[0], 4)"-->
-<!--          :cy="fromGridToCanvas(anchorOut[1], 6)"-->
-<!--          r="5"-->
-<!--          fill="green"-->
-<!--      />-->
-    </svg>
-    <svg class="letter mimic-1" v-if="display_mimic_1" ref="mimic_1" :style="{translate:`${delta_translate_x}% ${delta_translate_y}%`}">
-      <line
-          v-for="line in prevSchema"
-          :x1="fromGridToCanvas(line[0], 4)"
-          :y1="fromGridToCanvas(line[1], 6)"
-          :x2="fromGridToCanvas(line[2], 4)"
-          :y2="fromGridToCanvas(line[3], 6)"
-          stroke="white"
-          stroke-width="4"
-          stroke-linecap="round"
+      <circle
+          v-if="!show_anchor"
+          :cx="fromGridToCanvas(anchorIn[0], 4)"
+          :cy="fromGridToCanvas(anchorIn[1], 6)"
+          r="5"
+          fill="red"
+      />
+      <circle
+          v-if="!show_anchor"
+          :cx="fromGridToCanvas(anchorOut[0], 4)"
+          :cy="fromGridToCanvas(anchorOut[1], 6)"
+          r="5"
+          fill="green"
       />
     </svg>
-    <svg class="letter mimic-2" v-if="display_mimic_2" ref="mimic_2" :style="{translate:`${delta_translate_x}% ${delta_translate_y}%`}">
-      <line
-          v-for="line in prevSchema"
-          :x1="fromGridToCanvas(line[0], 4)"
-          :y1="fromGridToCanvas(line[1], 6)"
-          :x2="fromGridToCanvas(line[2], 4)"
-          :y2="fromGridToCanvas(line[3], 6)"
-          stroke="white"
-          stroke-width="4"
-          stroke-linecap="round"
-      />
-    </svg>
-    <svg class="letter mimic-3" v-if="display_mimic_3" ref="mimic_3" :style="{translate:`${delta_translate_x}% ${delta_translate_y}%`}">
+    <svg
+        class="letter mimic"
+        v-if="display_mimic"
+        ref="mimic"
+        :style="{translate:`${delta_translate_x}% ${delta_translate_y}%`}"
+
+        :animation-type="animation_type"
+        :transformation-type="transformation_type"
+    >
       <line
           v-for="line in prevSchema"
           :x1="fromGridToCanvas(line[0], 4)"
@@ -147,6 +161,7 @@ function fromGridToCanvas(pos, direction_cells = 0) {
 .letter {
   aspect-ratio: 4/6;
   width: 200px;
+  height: 300px;
 
   transition: transform 1s ease-out;
 }
@@ -157,91 +172,47 @@ function fromGridToCanvas(pos, direction_cells = 0) {
   overflow: visible;
 }
 
-.mimic-1 {
+.mimic {
   position: absolute;
   left: 0;
   top: 0;
-  animation: transform-rotate 3s linear alternate;
+  aspect-ratio: 4/6;
+  width: 100%;
+
+  animation: transform-unflip 2s ease-in-out infinite;
+  animation-iteration-count: 1;
+  opacity: 1;
+  scale: 1;
 }
 
-.mimic-2 {
-  position: absolute;
-  left: 0;
-  top: 0;
-  animation: transform-flip-vertical 3s linear alternate;
+.mimic[transformation-type="rotate"] {
+  rotate: 90deg;
+}
+.mimic[transformation-type="flip-vertical"] {
+  rotate: 180deg x;
+}
+.mimic[transformation-type="flip-horizontal"] {
+  rotate: 180deg y;
+}
+.mimic[animation-type="fade-away"] {
+  animation: fade-away 1s linear;
 }
 
-.mimic-3 {
-  position: absolute;
-  left: 0;
-  top: 0;
-  animation: transform-flip-horisontaly 3s linear alternate;
-}
-
-@keyframes transform-rotate {
+@keyframes fade-away {
   0% {
-    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 1.2;
+  }
+}
+
+@keyframes transform-unflip {
+  0% {
     rotate: 0deg;
-    scale: 1;
-    /* translate: 0 0; */
-  }
-  75% {
-    opacity: 1;
-    rotate: 90deg;
-    scale: 1;
+    translate: 0 0;
   }
   100% {
-    opacity: 0;
-    rotate: 90deg;
-    /* scale: 1.2; */
-  }
-}
-
-@keyframes transform-flip-vertical {
-  0% {
-    opacity: 1;
-    rotate: 0deg x;
-    scale: 1;
-    /* translate: 0 0; */
-  }
-  75% {
-    opacity: 1;
-    rotate: 180deg x;
-    scale: 1;
-  }
-  80% {
-    opacity: 1;
-    rotate: 180deg x;
-    scale: 1;
-  }
-  100% {
-    opacity: 0;
-    rotate: 180deg x;
-    scale: 1.2;
-  }
-}
-
-@keyframes transform-flip-horisontaly {
-  0% {
-    opacity: 1;
-    rotate: 0deg y;
-    scale: 1;
-    /* translate: 0 0; */
-  }
-  75% {
-    opacity: 1;
-    rotate: 180deg y;
-    scale: 1;
-  }
-  80% {
-    opacity: 1;
-    rotate: 180deg y;
-    scale: 1;
-  }
-  100% {
-    opacity: 0;
-    rotate: 180deg y;
-    scale: 1.2;
   }
 }
 </style>
