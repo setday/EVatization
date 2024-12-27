@@ -183,7 +183,7 @@ function fromGridToCanvas(pos, direction_cells = 0) {
     opacity: 1;
     rotate: 0deg;
     scale: 1;
-    //translate: 0 0;
+    /* translate: 0 0; */
   }
   75% {
     opacity: 1;
@@ -193,7 +193,7 @@ function fromGridToCanvas(pos, direction_cells = 0) {
   100% {
     opacity: 0;
     rotate: 90deg;
-    //scale: 1.2;
+    /* scale: 1.2; */
   }
 }
 
@@ -202,7 +202,7 @@ function fromGridToCanvas(pos, direction_cells = 0) {
     opacity: 1;
     rotate: 0deg x;
     scale: 1;
-    //translate: 0 0;
+    /* translate: 0 0; */
   }
   75% {
     opacity: 1;
@@ -226,7 +226,7 @@ function fromGridToCanvas(pos, direction_cells = 0) {
     opacity: 1;
     rotate: 0deg y;
     scale: 1;
-    //translate: 0 0;
+    /* translate: 0 0; */
   }
   75% {
     opacity: 1;
